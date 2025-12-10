@@ -11,7 +11,7 @@ import time
 import random
 from typing import Optional, Dict, Any, List, Tuple
 from concurrent.futures import ProcessPoolExecutor, as_completed
-from api.config import URLS
+from config import URLS
 
 
 def get_price_history(

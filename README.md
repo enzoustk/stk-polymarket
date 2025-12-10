@@ -1,1 +1,6 @@
-Módulo para fazer todas as chamadas não autenticadas à API da Polymarket
+Transformar esse módulo em um varredor profissional da PolyMarket.
+
+    V1: 
+        Interação com a API L1 da Polymarket
+        Interação com subgraph
+    

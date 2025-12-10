@@ -3,7 +3,7 @@ import requests
 import pandas as pd
 from config import URLS, QUERYS
 from helpers import loading_animation 
-from fetch import fetch_market_data
+from rest_api.fetch import _fetch_market_data
 from concurrent.futures import ProcessPoolExecutor, as_completed
 
 
@@ -422,26 +422,6 @@ def fetch_positions_from_rest(
     
     
     # Puxar metadados de mercado
-    return fetch_market_data(df_rest)
+    return _fetch_market_data(df_rest)
                         
     
-def fetch_pnl_data(
-    user_address: str,
-    ) -> pd.DataFrame:
-    """
-    Função principal orquestradora (com várias animações).
-    """
-    print(f"Iniciando coleta de dados para: {user_address}")
-    
-    
-    # Buscar Todas as Posições
-    active_positions, closed_positions = split_positions(
-        get_all_user_positions(user_address)
-    )
-    
-    # Aqui começa a lógica de puxar dados em rest
-    # Retorna em pd.DataFrame
-    active_df = fetch_positions_from_rest(user_address,active_positions, closed=False)
-    closed_df = fetch_positions_from_rest(user_address, closed_positions, closed=True)
-    
-    return closed_df, active_df
