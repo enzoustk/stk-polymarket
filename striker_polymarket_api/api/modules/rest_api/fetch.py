@@ -3,9 +3,9 @@ import random
 import requests
 import pandas as pd
 from typing import List, Dict, Any
-from striker_polymarket_api.config import URLS
-from striker_polymarket_api.helpers import loading_animation
+from striker_polymarket_api.api.config import URLS
 from concurrent.futures import ProcessPoolExecutor, as_completed
+from loading_animation.animation import loading_animation
 
 def _fetch_market_data(
     df: pd.DataFrame,
@@ -86,6 +86,7 @@ def _fetch_market_data(
         how='left'
     )
     return combined_df
+
 
 def _process_market_batch(
         markets:dict

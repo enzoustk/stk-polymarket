@@ -3,10 +3,10 @@ import json
 import requests
 from urllib3.util.retry import Retry
 from requests.adapters import HTTPAdapter
-from striker_polymarket_api.config import URLS
+from striker_polymarket_api.api.config import URLS
 from loading_animation.animation import loading_animation
 
-def update_markets(
+def update(
     save_file: bool = True,
     file_path: str = '../files/all_markets.json',
     save_debug: bool = False

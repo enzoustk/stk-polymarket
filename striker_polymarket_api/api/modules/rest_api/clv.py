@@ -3,7 +3,7 @@ import time
 import requests
 import pandas as pd
 from threading import Semaphore
-from striker_polymarket_api.config import URLS
+from striker_polymarket_api.api.config import URLS
 from typing import List, Dict, Any, Optional, Tuple
 from concurrent.futures import ThreadPoolExecutor, as_completed
 

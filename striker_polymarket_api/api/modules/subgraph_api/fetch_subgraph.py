@@ -1,10 +1,10 @@
 import time
 import requests
 import pandas as pd
-from striker_polymarket_api.config import URLS, QUERYS
-from striker_polymarket_api.helpers import loading_animation 
+from loading_animation.animation import loading_animation
+from striker_polymarket_api.api.config import URLS, QUERYS
 from concurrent.futures import ProcessPoolExecutor, as_completed
-from striker_polymarket_api.rest_api.fetch import _fetch_market_data
+from striker_polymarket_api.api.modules.rest_api.fetch import _fetch_market_data
 
 
 def query_graphql(
@@ -117,7 +117,9 @@ def get_user_positions(
     return []
 
 
-def split_positions(positions: list) -> tuple[list, list]:
+def split_positions(
+        positions: list
+    ) -> tuple[list, list]:
     # Recebe as posições "cruas" e separa por ativas e fechadas
     active = []
     closed = []

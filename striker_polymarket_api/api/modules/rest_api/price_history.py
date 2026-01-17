@@ -8,7 +8,7 @@ import random
 import requests
 import pandas as pd
 from datetime import datetime, timedelta
-from striker_polymarket_api.config import URLS
+from striker_polymarket_api.api.config import URLS
 from typing import Optional, Dict, Any, List, Tuple
 from concurrent.futures import ProcessPoolExecutor, as_completed
 
