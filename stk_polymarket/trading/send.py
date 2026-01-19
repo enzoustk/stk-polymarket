@@ -18,7 +18,7 @@ def send_order(
     
     try:
         price = round(float(price), 2)
-        size = round(float(size), 0)
+        size = round(float(size), 2)
         token_id = str(token_id)
 
         args = OrderArgs(
