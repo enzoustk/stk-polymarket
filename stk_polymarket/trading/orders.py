@@ -7,13 +7,13 @@ def fok(
     side: str,
     client: ClobClient,
     asset: str,
-    shares: float,
+    size: float,
     price: float
     ) -> Optional[Dict[str, Any]]:
     return send_order(
         client,
         price,
-        shares,
+        size,
         side,
         asset,
         OrderType.FOK
@@ -25,7 +25,7 @@ def fak(
     client: ClobClient,
     asset: str,
     price: float,
-    shares: float
+    size: float
     ) -> Optional[Dict[str, Any]]:
     """
     Compra/Vende a limite via FAK -> Fill and Kill
@@ -34,7 +34,7 @@ def fak(
         side=side,
         client=client,
         price=price,
-        shares=shares,
+        size=size,
         asset=asset,
         order_type=OrderType.FAK
     )
@@ -44,7 +44,7 @@ def gtc(
     side,
     client: ClobClient,
     asset: str,
-    shares: float,
+    size: float,
     price: float
     ) -> Optional[Dict[str, Any]]:
     """Ordem Limit padrão. Fica no livro até você cancelar."""
@@ -52,7 +52,7 @@ def gtc(
         side=side,
         client=client,
         price=price,
-        shares=shares,
+        size=size,
         asset=asset,
         order_type=OrderType.GTC
     )
@@ -62,7 +62,7 @@ def gtd(
     side,
     client: ClobClient,
     asset: str,
-    shares: float,
+    size: float,
     price: float,
     expiration_ts: int
     ) -> Optional[Dict[str, Any]]:
@@ -74,7 +74,7 @@ def gtd(
         side=side,
         client=client,
         price=price,
-        shares=shares,
+        size=size,
         asset=asset,
         order_type=OrderType.GTD,
         expiration=expiration_ts
