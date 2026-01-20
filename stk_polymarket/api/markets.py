@@ -4,6 +4,7 @@ import requests
 from urllib3.util.retry import Retry
 from requests.adapters import HTTPAdapter
 from stk_polymarket.api.config import URLS
+from stk_polymarket.api.modules import helpers
 from loading_animation.animation import loading_animation
 
 def update(
@@ -66,6 +67,9 @@ def update(
                         t["slug"] for t in tags_obj
                         if isinstance(t, dict) and "slug" in t
                     ]
+                    
+                    # --- NOVO: Detectar Esporte ---
+                    detected_sport = helpers.get_sport_from_tags(event_tags)
 
                     markets = event.get("markets", [])
                     total_markets += len(markets)
@@ -75,8 +79,6 @@ def update(
                         condition_id = market.get("conditionId") or market.get("condition_id")
 
                         if not condition_id:
-                            # Opcional: remover print para limpar o log se tiver muitos
-                            # print("⚠️ Skipped market with no condition_id")
                             continue
 
                         raw_clob_ids = market.get("clobTokenIds")
@@ -108,6 +110,7 @@ def update(
                                         "outcome": outcomes[i],
                                         "condition_id": condition_id,
                                         "tags": event_tags,
+                                        "sport": detected_sport,
                                         "start_time": start_time
                                     }
                                     total_tokens += 1
