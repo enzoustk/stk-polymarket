@@ -4,10 +4,10 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "striker-polymarket"
-version = "0.1.0"
-description = "Uma biblioteca robusta e de alta performance para extração e análise de dados da Polymarket."
+version = "0.2.0"
+description = "Biblioteca de alta performance para dados e trading de baixa latência na Polymarket (CLOB V2)."
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 authors = [
     { name = "enzoustk" }
 ]
@@ -17,13 +17,26 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
-    "requests>=2.0.0",
+    "requests>=2.26.0",
     "pandas>=1.3.0",
     "pytz",
+    "py-clob-client-v2>=1.0,<2.0",
+    "eth-account>=0.13,<0.14",
+    "httpx[http2]>=0.28,<0.29",
+    "websockets>=14,<17",
 ]
+
+[project.optional-dependencies]
+# coincurve usa o backend nativo libsecp256k1 -> assinatura ECDSA sub-ms (hot path).
+fast = ["coincurve>=21,<22"]
 
 [project.urls]
 "Homepage" = "https://github.com/enzoustk/striker_polymarket_api"
 
 [tool.setuptools.packages]
 find = {}
+
+[tool.pytest.ini_options]
+markers = [
+    "live: testes que batem na API real da Polymarket (requerem RUN_LIVE=1 e credenciais)",
+]

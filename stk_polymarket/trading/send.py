@@ -1,60 +1,108 @@
-from py_clob_client.client import ClobClient
-from py_clob_client.exceptions import PolyApiException
-from py_clob_client.clob_types import OrderArgs, OrderType
+"""
+Envio de ordens via SDK oficial (caminho de referência / baseline, CLOB V2).
+
+Este é o caminho SIMPLES e CORRETO: usa `ClobClient.create_and_post_order` do
+py-clob-client-v2. Serve para:
+  - uso direto quando latência não é crítica;
+  - oráculo de paridade dos testes (o FastTrader deve produzir o MESMO payload).
+
+Para o caminho de baixa latência use `stk_polymarket.trading.fast.FastTrader`.
+"""
+
+from typing import Any
+
+from py_clob_client_v2 import (
+    ClobClient,
+    OrderArgsV2,
+    OrderType,
+    PartialCreateOrderOptions,
+)
+from py_clob_client_v2.exceptions import PolyApiException
+
+# Status terminais retornados pelo /order (ver SendOrderResponse da V2):
+#   matched = executada (preenchida) · live = em repouso no book · delayed = enfileirada
+TERMINAL_FILLED = "matched"
+
+
+class OrderRejected(Exception):
+    """Ordem rejeitada pelo servidor (não-200 ou success=False)."""
+
 
 def send_order(
     client: ClobClient,
     price: float,
     size: float,
-    side: str, 
+    side: str,
     token_id: str,
-    order_type: OrderType,
-    expiration: int = 0
-    ) -> dict | None:
-    
+    order_type: str = OrderType.GTC,
+    *,
+    tick_size: str | None = None,
+    neg_risk: bool | None = None,
+    expiration: int = 0,
+    raise_on_reject: bool = True,
+) -> dict[str, Any]:
     """
-    Wrapper para Enviar de fato as ordens ao server da Polymarket
+    Cria, assina e envia uma ordem via SDK V2.
+
+    Diferente da versão V1 (que retornava None em silêncio), aqui o erro é
+    propagado e o status é interpretado.
+
+    Args:
+        tick_size/neg_risk: se informados, evitam o GET de metadados no caminho da
+            ordem (passe-os pré-cacheados para reduzir latência).
+        order_type: "GTC" | "GTD" | "FOK" | "FAK".
+        expiration: timestamp UNIX (s) para GTD.
+
+    Returns:
+        dict de resposta do servidor.
+
+    Raises:
+        OrderRejected: em rejeição (se raise_on_reject=True).
     """
-    
+    options = None
+    if tick_size is not None or neg_risk is not None:
+        options = PartialCreateOrderOptions(tick_size=tick_size, neg_risk=neg_risk)
+
+    args = OrderArgsV2(
+        token_id=str(token_id),
+        price=float(price),
+        size=float(size),
+        side=side,
+        expiration=int(expiration),
+    )
+
     try:
-        price = round(float(price), 2)
-        size = round(float(size), 2)
-        token_id = str(token_id)
-
-        args = OrderArgs(
-            price=price,
-            size=size,
-            side=side,
-            token_id=token_id,
-            expiration=expiration
-        )
-
-        signed_order = client.create_order(args)
-        resp = client.post_order(signed_order, order_type)
-        
-        if resp and isinstance(resp, dict) and resp.get("success"):
-            return resp
-        elif resp and hasattr(resp, "success") and resp.success:
-            return resp
-        else:
-            # Rejeição Silenciosa
-            return None
-
+        resp = client.create_and_post_order(args, options, order_type)
     except PolyApiException as e:
-        # Extração segura da mensagem de erro
-        raw_error = getattr(e, "message", "") or getattr(e, "error_message", "") or str(e)
-        error_body = str(raw_error).lower()
-        status_code = getattr(e, "status_code", 0)
+        if raise_on_reject:
+            raise OrderRejected(_describe_api_error(e)) from e
+        return {"success": False, "error": _describe_api_error(e)}
 
-        # Filtro de Saldo REAL (apenas se a mensagem falar explicitamente de saldo)
-        balance_keywords = ["not enough balance", "insufficient funds", "allowance", "insufficient"]
-        
-        # MUDANÇA AQUI: Só acusa saldo se a mensagem contiver as palavras-chave.
-        # Se for apenas 400 genérico, deixa passar para o print de baixo.
-        if any(k in error_body for k in balance_keywords):
-            print(f"⚠️ Saldo/Allowance insuficiente (Real).") 
-            return None
+    if raise_on_reject and not _is_accepted(resp):
+        raise OrderRejected(f"Ordem rejeitada: {resp}")
+    return resp
 
-        # Agora vamos ver o erro real!
-        print(f"❌ Erro na API [{status_code}]: {raw_error}")
-        return None
+
+def is_filled(resp: dict[str, Any]) -> bool:
+    """True se a resposta indica execução (status=matched)."""
+    return isinstance(resp, dict) and resp.get("status") == TERMINAL_FILLED
+
+
+def _is_accepted(resp: Any) -> bool:
+    if not isinstance(resp, dict):
+        return False
+    if resp.get("success") is False:
+        return False
+    if resp.get("errorMsg") or resp.get("error"):
+        return False
+    # Aceita se veio um id/status de ordem
+    return bool(resp.get("orderID") or resp.get("orderId") or resp.get("status") or resp.get("success"))
+
+
+def _describe_api_error(e: PolyApiException) -> str:
+    status = getattr(e, "status_code", None)
+    msg = getattr(e, "error_message", None) or getattr(e, "msg", None) or str(e)
+    return f"[{status}] {msg}"
+
+
+__all__ = ["send_order", "is_filled", "OrderRejected", "TERMINAL_FILLED"]

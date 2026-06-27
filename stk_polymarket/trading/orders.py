@@ -1,81 +1,46 @@
-from typing import Optional, Dict, Any
-from py_clob_client.client import ClobClient
-from py_clob_client.clob_types import OrderType
-from stk_polymarket.trading.send import send_order
+"""
+Wrappers por tipo de ordem (CLOB V2), roteando para o caminho de baixa latência.
 
-def fok(
-    side: str,
-    client: ClobClient,
-    token_id: str,
-    size: float,
-    price: float
-    ) -> Optional[Dict[str, Any]]:
-    return send_order(
-        client,
-        price,
-        size,
-        side,
-        token_id,
-        OrderType.FOK
-    )
+Mudança da V1: estas funções recebem um `FastTrader` (não mais um ClobClient V1).
+São açúcar sintático fino sobre `FastTrader`:
+
+    ft = FastTrader(private_key).warmup(token_ids=[tid])
+    fok(ft, "BUY", tid, size=10, price=0.62)
+
+Para o caminho simples via SDK use `stk_polymarket.trading.send.send_order`.
+"""
+
+from typing import Any
+
+from stk_polymarket.trading.fast import FastTrader
 
 
-def fak(
-    side,
-    client: ClobClient,
-    token_id: str,
-    price: float,
-    size: float
-    ) -> Optional[Dict[str, Any]]:
-    """
-    Compra/Vende a limite via FAK -> Fill and Kill
-    """
-    return send_order(
-        side=side,
-        client=client,
-        price=price,
-        size=size,
-        token_id=token_id,
-        order_type=OrderType.FAK
-    )
+def fok(trader: FastTrader, side: str, token_id: str, size: float, price: float, **kw) -> dict[str, Any]:
+    """Fill-or-Kill: executa tudo imediatamente ou cancela."""
+    return trader.fok(token_id, price, size, side, **kw)
 
 
-def gtc(
-    side,
-    client: ClobClient,
-    token_id: str,
-    size: float,
-    price: float
-    ) -> Optional[Dict[str, Any]]:
-    """Ordem Limit padrão. Fica no livro até você cancelar."""
-    return send_order(
-        side=side,
-        client=client,
-        price=price,
-        size=size,
-        token_id=token_id,
-        order_type=OrderType.GTC
-    )
+def fak(trader: FastTrader, side: str, token_id: str, price: float, size: float, **kw) -> dict[str, Any]:
+    """Fill-and-Kill: executa o que der imediatamente, cancela o resto."""
+    return trader.fak(token_id, price, size, side, **kw)
+
+
+def gtc(trader: FastTrader, side: str, token_id: str, size: float, price: float, **kw) -> dict[str, Any]:
+    """Good-Til-Cancelled: ordem limite que fica no book até cancelar."""
+    return trader.gtc(token_id, price, size, side, **kw)
 
 
 def gtd(
-    side,
-    client: ClobClient,
+    trader: FastTrader,
+    side: str,
     token_id: str,
     size: float,
     price: float,
-    expiration_ts: int
-    ) -> Optional[Dict[str, Any]]:
-    """
-    Ordem Limit com data de validade.
-    expiration_ts: Timestamp UNIX (int) de quando a ordem expira.
-    """
-    return send_order(
-        side=side,
-        client=client,
-        price=price,
-        size=size,
-        token_id=token_id,
-        order_type=OrderType.GTD,
-        expiration=expiration_ts
-    )
+    expiration_ts: int,
+    **kw,
+) -> dict[str, Any]:
+    """Good-Til-Date: ordem limite com validade. expiration_ts = UNIX (s)."""
+    return trader.gtd(token_id, price, size, side, expiration_ts, **kw)
+
+
+__all__ = ["fok", "fak", "gtc", "gtd"]

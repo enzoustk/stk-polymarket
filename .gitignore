@@ -1,0 +1,65 @@
+# ---- Segredos / credenciais (NUNCA commitar) ----
+.env
+.env.*
+*.pem
+secrets.json
+creds.json
+
+# ---- Ambientes virtuais ----
+.venv/
+venv/
+env/
+ENV/
+.python-version
+
+# ---- Bytecode / build Python ----
+__pycache__/
+*.py[cod]
+*$py.class
+build/
+dist/
+wheels/
+*.egg
+*.egg-info/
+.eggs/
+develop-eggs/
+
+# ---- Testes / cobertura / lint / type ----
+.pytest_cache/
+.cache/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+.tox/
+.nox/
+.mypy_cache/
+.dmypy.json
+.ruff_cache/
+
+# ---- Artefatos gerados pela lib (dados de mercado / debug) ----
+files/
+all_markets.json
+event_debug.json
+sports_data_with_prices.csv
+*.log
+
+# ---- IDE / editor ----
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ---- macOS / OS ----
+.DS_Store
+Thumbs.db
+
+# ---- Jupyter ----
+.ipynb_checkpoints/
+
+# ---- OMC (oh-my-claudecode) ----
+.omc
+
+# ---- Claude Code (versiona settings.json compartilhado; ignora overrides locais) ----
+.claude/settings.local.json

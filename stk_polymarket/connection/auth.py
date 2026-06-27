@@ -1,53 +1,60 @@
 """
-Rode o auth para autorizar a wallet a fazer trading e gerar as keys
+Autorização da carteira e geração das credenciais de API (CLOB V2).
+
+Rode uma vez para derivar/criar as credenciais L2 (apiKey/secret/passphrase) a
+partir da sua chave privada. Guarde-as com segurança (ex.: .env) e reutilize via
+`clob(..., creds=...)` para evitar a derivação a cada start.
 """
 
+from py_clob_client_v2 import ApiCreds
 
-from py_clob_client.client import ClobClient
+from stk_polymarket.connection.connect import (
+    CHAIN_ID,
+    HOST,
+    clob,
+    derive_or_create_creds,
+)
+
 
 def auth(
-    PRIVATE_KEY,
-    SIGNATURE_TYPE,
-    FUNDER
-    ):
-    
-    HOST = "https://clob.polymarket.com"
-    CHAIN_ID = "137"
+    private_key: str,
+    signature_type: int = 0,
+    funder: str | None = None,
+) -> ApiCreds:
+    """
+    Deriva/cria as credenciais L2 e faz um teste autenticado (get_ok).
+
+    Args:
+        private_key: chave privada (EOA padrão).
+        signature_type: 0=EOA, 1=POLY_PROXY, 2=POLY_GNOSIS_SAFE, 3=POLY_1271.
+        funder: endereço dos fundos para proxy/safe; None para EOA.
+
+    Returns:
+        ApiCreds(api_key, api_secret, api_passphrase).
+    """
+    if not private_key:
+        raise ValueError("private_key ausente.")
+
+    client = clob(
+        private_key=private_key,
+        signature_type=signature_type,
+        funder=funder,
+        host=HOST,
+        chain_id=CHAIN_ID,
+    )
+    creds = client.creds
+
+    print("=== CREDENCIAIS API (CLOB V2) ===")
+    print("API Key       :", creds.api_key)
+    print("API Secret    :", creds.api_secret)
+    print("API Passphrase:", creds.api_passphrase)
+    print("Guarde-as com segurança (ex.: .env) e reutilize via clob(creds=...).")
+
+    # Teste autenticado simples (read-only)
+    print("=== TESTE: get_ok ===")
+    print("get_ok:", client.get_ok())
+
+    return creds
 
 
-    if not PRIVATE_KEY:
-        raise ValueError("PKey missing.")
-
-    # Inicialização do cliente – decidir se proxy ou EOA diretamente
-    if SIGNATURE_TYPE is not None and FUNDER:
-        # modo proxy
-        client = ClobClient(
-            HOST,
-            key=PRIVATE_KEY,
-            chain_id=CHAIN_ID,
-            signature_type=int(SIGNATURE_TYPE),
-            funder=FUNDER
-        )
-    else:
-        # modo EOA direto (carteira que você controla a chave privada)
-        client = ClobClient(
-            HOST,
-            key=PRIVATE_KEY,
-            chain_id=CHAIN_ID
-        )
-
-    # Derivar ou criar credenciais de API (L1 → credenciais)
-    api_creds = client.create_or_derive_api_creds()
-    print("=== CRIADAS/DERIVADAS CREDENCIAIS API ===")
-    print("API Key      :", api_creds.api_key)
-    print("API Secret   :", api_creds.api_secret)
-    print("API Passphrase:", api_creds.api_passphrase)
-
-    # Salve essas 3 em seu .env manualmente ou criptografado
-    # Vamos definir no cliente para usar nas requisições
-    client.set_api_creds(api_creds)
-
-    # Teste simples: obter server time ou endpoint read-only autenticado
-    print("=== TESTE L2 – chamada autenticada ===")
-    server_time = client.get_server_time()
-    print("Server time:", server_time)
+__all__ = ["auth", "derive_or_create_creds"]

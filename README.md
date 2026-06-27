@@ -33,7 +33,7 @@ Projetada para *traders* e analistas, a biblioteca combina dados da API REST ofi
 O módulo `subgraph` orquestra a busca completa, cruzando dados de saldo com metadados de mercado.
 
 ```python
-from striker_polymarket_api.subgraph import fetch_pnl_data
+from stk_polymarket.api.subgraph import fetch_pnl_data
 
 USER_ADDRESS = "0xSeuEnderecoPolymarket..."
 
@@ -49,7 +49,7 @@ print(df_closed.head())
 Calcula a eficiência dos seus trades comparando o preço pago vs. preço real no início do evento.
 
 ```python
-from striker_polymarket_api.rest_api import calculate_clv
+from stk_polymarket.api.rest import calculate_clv
 
 # Supondo que você já tenha um DataFrame 'df_positions' com as colunas necessárias
 # (conditionId, asset, start_time, match_start_price, etc.)
@@ -67,7 +67,7 @@ print(df_resultado[['asset', 'price_clv', 'odds_clv']])
 Busca o preço de um ativo no momento exato em que um evento começou (útil para *backtesting*).
 
 ```python
-from striker_polymarket_api.rest_api.price_history import get_match_start_price
+from stk_polymarket.api.modules.rest_api.price_history import get_match_start_price
 from datetime import datetime
 import pytz
 
@@ -82,6 +82,43 @@ price = get_match_start_price(
 
 print(f"Preço no início do jogo: {price}")
 ```
+
+### 4\. Trading — Envio de Ordens (CLOB V2, baixa latência)
+
+> ⚠️ A Polymarket **descontinuou** o `py-clob-client` (V1) e migrou para a **CLOB V2**
+> (sem retrocompatibilidade). Esta lib usa o sucessor oficial `py-clob-client-v2`.
+> Instale o extra `fast` (`pip install -e .[fast]`) para o backend `coincurve`
+> (assinatura ECDSA sub-ms).
+
+O `FastTrader` é o caminho de **baixa latência**: pré-aquece credenciais, metadados
+(tick_size/neg_risk) e a conexão TLS/HTTP2, e no envio faz só *build → sign → 1 POST*
+(zero round-trips extras). Carteira **EOA** por padrão (`signature_type=0`).
+
+```python
+from stk_polymarket import FastTrader, OrderType
+
+TOKEN_ID = "7132104567...."
+
+# Pré-aquece tudo uma vez (deriva creds, cacheia tick/neg, abre a conexão)
+ft = FastTrader(private_key="0x...").warmup(token_ids=[TOKEN_ID])
+
+# Marketable (FOK / FAK)
+ft.fok(TOKEN_ID, price=0.62, size=10, side="BUY")
+
+# Limit GTC, e pré-assinatura para disparo ainda mais rápido
+ft.gtc(TOKEN_ID, price=0.55, size=20, side="BUY")
+signed = ft.presign(TOKEN_ID, 0.50, 20, "BUY")   # assina agora...
+ft.send(signed, OrderType.GTC)                    # ...dispara depois (só HMAC + POST)
+```
+
+Para o caminho simples via SDK (latência não crítica) use
+`stk_polymarket.trading.send.send_order`. Para reutilizar credenciais já derivadas,
+gere-as uma vez com `stk_polymarket.connection.auth.auth(private_key)` e passe via
+`FastTrader(private_key, creds=...)`.
+
+> **Latência:** o gargalo é a rede, não a CPU (assinatura ~sub-ms com `coincurve`). O
+> maior ganho é **pré-aquecer a conexão** (remove o handshake TLS de ~centenas de ms do
+> caminho da ordem) e **colocation** próximo ao edge da Cloudflare.
 
 ## 🛠️ Estrutura do Projeto
 
